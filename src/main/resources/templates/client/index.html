@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ thống tư vấn sinh viên</title>
+    <!-- Thêm liên kết đến Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.ckeditor.com/ckeditor5/36.0.1/classic/ckeditor.js"></script>
+
+    <!-- Thêm các style tùy chỉnh -->
+    <style>
+        .sidebar {
+            background-color: #f8f9fa;
+            height: 100vh;
+            padding-top: 20px;
+        }
+
+        .sidebar a {
+            font-size: 16px;
+            color: #007bff;
+        }
+
+        .sidebar a:hover {
+            color: #0056b3;
+            text-decoration: none;
+        }
+
+        .question-card {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+
+        .question-card:hover {
+            background-color: #e9ecef;
+        }
+
+        .answer {
+            display: none;
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        .navbar-brand {
+            font-size: 24px;
+        }
+    </style>
+
+    <style>
+        /* Các style đã có */
+        .question-card {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+
+        .question-card:hover {
+            background-color: #e9ecef;
+        }
+
+        /* Điều chỉnh phần hiển thị câu hỏi và trả lời */
+        .question-content,
+        .answer {
+            display: none;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            word-wrap: break-word;
+        }
+
+        .question-content {
+            background-color: #e9ecef;
+            margin-right: 50%; /* Đẩy câu hỏi sang trái */
+            float: left; /* Câu hỏi ở bên trái */
+        }
+
+        .answer {
+            background-color: #d1f0d1;
+            margin-left: 50%; /* Đẩy câu trả lời sang phải */
+            float: right; /* Câu trả lời ở bên phải */
+        }
+
+        .clearfix {
+            clear: both;
+        }
+    </style>
+
+</head>
+
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#">Hệ thống tư vấn sinh viên</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto" id="navbar-links">
+                <!-- Đăng nhập và đăng ký nếu chưa đăng nhập -->
+                <div th:unless="${email != null}">
+                    <li class="nav-item">
+                        <a class="nav-link" id="login-link" th:href="@{/login}">Đăng nhập</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="register-link" th:href="@{/register}">Đăng ký</a>
+                    </li>
+                </div>
+
+                <div th:if="${email != null}">
+                    <li class="nav-item" id="profile-link">
+                        <a class="nav-link" id="profile" th:href="@{/client/profile}">Profile</a>
+                    </li>
+                    <li class="nav-item" id="logout-link">
+                        <a class="nav-link" th:href="@{/logout}">Đăng xuất</a>
+                    </li>
+                </div>
+            </ul>
+        </div>
+    </div>
+</nav>
+<div class="container mt-4">
+    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#questionModal">Đặt câu hỏi</button>
+</div>
+
+<!-- Modal Đặt câu hỏi -->
+<div class="modal fade" id="questionModal" tabindex="-1" aria-labelledby="questionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="questionModalLabel">Đặt câu hỏi cho ban tư vấn</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="question-form">
+                    <div class="mb-3">
+                        <label for="departmentSelect" class="form-label">Chọn phòng ban</label>
+                        <select class="form-select" id="departmentSelect" required>
+                            <option value="">Chọn phòng ban</option>
+                            <th:block th:each="department : ${departments}">
+                                <option th:value="${department.id}" th:text="${department.name}"></option>
+                            </th:block>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="mssvInput" class="form-label">Mã số sinh viên (MSSV)</label>
+                        <input type="text" class="form-control" id="mssvInput" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="nameInput" class="form-label">Họ và tên</label>
+                        <input type="text" class="form-control" id="nameInput" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="emailInput" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="emailInput" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="roleSelect" class="form-label">Đối tượng</label>
+                        <select class="form-select" id="roleSelect" required>
+                            <option value="sinhvien">Sinh viên</option>
+                            <option value="cuusinhvien">Cựu sinh viên</option>
+                            <option value="phuhuynh">Phụ huynh</option>
+                            <option value="khac">Khác</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="titleInput" class="form-label">Tiêu đề câu hỏi</label>
+                        <input type="text" class="form-control" id="titleInput" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="contentInput" class="form-label">Nội dung câu hỏi</label>
+                        <div id="contentInput" class="form-control" rows="5" required></div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Gửi câu hỏi</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Thêm liên kết đến Bootstrap JS và Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-3 sidebar">
+            <h4 class="text-center">Danh sách Khoa</h4>
+            <ul class="nav flex-column">
+                <li th:each="department : ${departments}" class="nav-item">
+                    <a class="nav-link" href="#"
+                       th:data-id="${department.id}"
+                       onclick="showQuestions(this)">
+                        <span th:text="${department.name}"></span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="col-md-9">
+            <div id="questions-list">
+                <h3 class="text-center mt-4">Chọn Khoa để xem câu hỏi</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function showQuestions(link) {
+        const departmentId = link.getAttribute('data-id'); // Retrieve department ID from data-id attribute
+        const questionsList = document.getElementById('questions-list');
+        questionsList.innerHTML = "<h3 class='text-center'>Đang tải...</h3>";
+
+        // Thêm phần xử lý câu hỏi và câu trả lời
+        fetch(`/client/questions/${departmentId}`)
+            .then(response => response.json())
+            .then(data => {
+                questionsList.innerHTML = "";  // Clear the loading text
+                if (data.length === 0) {
+                    questionsList.innerHTML = "<h3 class='text-center'>Không có câu hỏi nào cho khoa này.</h3>";
+                    return;
+                }
+
+                data.forEach(item => {
+                    // Create the question card with title
+                    const questionCard = document.createElement('div');
+                    questionCard.classList.add('question-card');
+                    questionCard.innerHTML = item.title;  // Show the title of the question
+
+                    // Create a new div to display the question content (HTML content), initially hidden
+                    const questionContent = document.createElement('div');
+                    questionContent.classList.add('question-content');
+                    questionContent.innerHTML = item.content;  // Set the question content as HTML
+                    questionContent.style.display = 'none';  // Initially hide the content
+
+                    // Create the answer div and hide it initially
+                    const answerDiv = document.createElement('div');
+                    answerDiv.classList.add('answer');
+                    answerDiv.innerHTML = item.reply ? `<strong>Reply from ${item.consultantName} (${item.consultantEmail})</strong><br>${item.reply}` : 'No reply yet.';
+                    answerDiv.style.display = 'none';  // Initially hide the answer
+
+                    // Toggle visibility of question content and answer when clicking on the question card
+                    questionCard.addEventListener('click', () => {
+                        // Toggle the visibility of question content and answer
+                        questionContent.style.display = questionContent.style.display === 'none' ? 'block' : 'none';
+                        answerDiv.style.display = answerDiv.style.display === 'none' ? 'block' : 'none';
+                    });
+
+                    // Append question card, question content, and answer content to the questions list
+                    questionsList.appendChild(questionCard);
+                    questionsList.appendChild(questionContent);  // Append question content
+                    questionsList.appendChild(answerDiv);  // Append answer content
+                    questionsList.appendChild(document.createElement('div')).classList.add('clearfix');  // Ensure layout clears after each question-answer block
+                });
+
+            })
+            .catch(error => {
+                console.error('Error fetching questions:', error);
+                questionsList.innerHTML = "<h3 class='text-center'>Không có câu hỏi.</h3>";
+            });
+
+    }
+
+
+</script>
+<script>
+    // Initialize CKEditor and store the editor instance in a variable
+    let editor;
+
+    ClassicEditor
+        .create(document.querySelector('#contentInput'))
+        .then(ed => {
+            editor = ed;  // Store the editor instance in a variable
+        })
+        .catch(error => {
+            console.error(error);
+        });
+
+    // Handle form submission
+    document.getElementById('question-form').addEventListener('submit', function (event) {
+        event.preventDefault();  // Prevent default form submission
+
+        // Get the form elements
+        const departmentId = document.getElementById('departmentSelect').value;
+        const mssv = document.getElementById('mssvInput').value;
+        const name = document.getElementById('nameInput').value;
+        const email = document.getElementById('emailInput').value;
+        const role = document.getElementById('roleSelect').value;
+        const title = document.getElementById('titleInput').value;
+        const content = editor.getData();  // Access CKEditor content
+
+        // Validate form fields including CKEditor content
+        if (!departmentId || !mssv || !name || !email || !role || !title || !content) {
+            alert("Vui lòng điền đầy đủ tất cả các trường!");
+            return;  // Stop form submission if validation fails
+        }
+
+        // Create data object to be sent
+        const formData = {
+            departmentId: departmentId,
+            mssv: mssv,
+            name: name,
+            email: email,
+            role: role,
+            title: title,
+            content: content
+        };
+
+        // Send the form data via AJAX to the server
+        fetch('/client/save-question', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        })
+            .then(response => response.json())
+            .then(data => {
+                // Handle response after saving the question
+                if (data.success) {
+                    alert("Câu hỏi đã được gửi thành công!");
+                    window.location.reload();
+
+                    // Optionally, close the modal
+                    $('#questionModal').modal('hide');
+                } else {
+                    alert("Có lỗi xảy ra. Vui lòng thử lại.");
+                }
+            })
+            .catch(error => {
+                window.location.reload();
+            });
+    });
+
+
+</script>
+</body>
+</html>
